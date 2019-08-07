@@ -2,6 +2,7 @@ package com.auth.jwt.security.filter;
 
 import com.auth.jwt.security.JwtOperations;
 import com.auth.jwt.security.MyUserDetailsService;
+import com.auth.jwt.security.hist.TokenHistory;
 import io.jsonwebtoken.Claims;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,8 @@ public class JwtAuthFilter extends OncePerRequestFilter
      @Autowired
      AuthenticationManager authenticationManager ;
 
+     @Autowired
+     TokenHistory tokenHistory ;
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest,
                                     HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
@@ -52,17 +55,26 @@ public class JwtAuthFilter extends OncePerRequestFilter
         if(token == null){
           LOGGER.warn("No JWT token on the request: {}",httpServletRequest.getRequestURI());
         }else if(jwtOperations.validateToken(token)) {
-            String userName = jwtOperations.getClaimFromToken(token, Claims::getSubject);
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userName);
 
-            UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
-            usernamePasswordAuthenticationToken
-                    .setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
-            // After setting the Authentication in the context, we specify
-            // that the current user is authenticated. So it passes the
-            // Spring Security Configurations successfully.
-            SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            String userName = jwtOperations.getClaimFromToken(token, Claims::getSubject);
+            boolean tokenIssuedPreviously = tokenHistory.isTokenIssuedPreviously(userName, token);
+            if(!tokenIssuedPreviously){
+                LOGGER.warn("The token produced by the user seems to be an older copy and has already been invalidated");
+            }else {
+                token = jwtOperations.generateJwtToken(userName);
+                tokenHistory.invalidateOldToken(userName,token);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(userName);
+
+                UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                usernamePasswordAuthenticationToken
+                        .setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
+                // After setting the Authentication in the context, we specify
+                // that the current user is authenticated. So it passes the
+                // Spring Security Configurations successfully.
+                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+                httpServletResponse.addHeader("Authorization", token);
+            }
         }
         filterChain.doFilter(httpServletRequest,httpServletResponse);
     }

@@ -4,6 +4,7 @@ import com.auth.jwt.security.filter.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -51,6 +52,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
         http.authorizeRequests()
                 .antMatchers("/h2-console/**/**").permitAll()
                 .antMatchers("/signin").permitAll()
+                .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Disallow everything else..
                 .anyRequest().authenticated()
                 .and().

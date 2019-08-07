@@ -32,11 +32,10 @@ public class JwtOperations {
         secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
     }
 
-    public String generateJwtToken(Authentication authentication){
+    public String generateJwtToken(String userName){
         LOGGER.info("generating Jwt token");
-        UserDetailsImpl user = (UserDetailsImpl) authentication.getPrincipal();
 
-        Claims claims = Jwts.claims().setSubject(user.getUsername());
+        Claims claims = Jwts.claims().setSubject(userName);
         Date now = new Date();
         Date expiry = new Date(now.getTime() + validityInMilliseconds);
         String jwtToken = Jwts.builder().setClaims(claims).setIssuedAt(now).setExpiration(expiry)

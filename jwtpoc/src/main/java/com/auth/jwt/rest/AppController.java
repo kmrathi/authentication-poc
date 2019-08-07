@@ -5,6 +5,7 @@ import com.auth.jwt.model.ApplicationUser;
 import com.auth.jwt.model.JwtAuthenticationResponse;
 import com.auth.jwt.model.LoginRequest;
 import com.auth.jwt.security.JwtOperations;
+import com.auth.jwt.security.hist.TokenHistory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,6 +19,7 @@ import javax.validation.Valid;
 import java.util.List;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200")
 public class AppController {
 
     @Autowired
@@ -28,7 +30,10 @@ public class AppController {
     AuthenticationManager authenticationManager;
 
     @Autowired
-    JwtOperations tokenProvider ;
+    private JwtOperations tokenProvider ;
+
+    @Autowired
+    private TokenHistory tokenHistory ;
 
     @GetMapping("/welcome")
     public String welcomeMessage(){
@@ -52,7 +57,8 @@ public class AppController {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String jwt = tokenProvider.generateJwtToken(authentication);
+        String jwt = tokenProvider.generateJwtToken(loginRequest.getUsernameOrEmail());
+        tokenHistory.invalidateOldToken(loginRequest.getUsernameOrEmail(),jwt);
         response.setHeader("Authorization",jwt);
         return ResponseEntity.ok(jwt);
     }
