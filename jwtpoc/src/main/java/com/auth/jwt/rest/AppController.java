@@ -19,7 +19,7 @@ import javax.validation.Valid;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "*")
 public class AppController {
 
     @Autowired
@@ -60,6 +60,6 @@ public class AppController {
         String jwt = tokenProvider.generateJwtToken(loginRequest.getUsernameOrEmail());
         tokenHistory.invalidateOldToken(loginRequest.getUsernameOrEmail(),jwt);
         response.setHeader("Authorization",jwt);
-        return ResponseEntity.ok(jwt);
+        return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
     }
 }
